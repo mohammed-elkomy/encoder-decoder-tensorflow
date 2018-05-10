@@ -2,7 +2,7 @@
 
 Encoder-decoder architecture as seq2seq model used for neural machine translation where the source sentence in compressed in thought vector dimensional space and then projected on the target vocabulary space and sampling at each step 
 
-My dataset is synthetic dataset where the source sentence for example **1 2 3 4 <KOMYEOS>** the target translation would be **4 3 2 1 <KOMYEOS>** so it will learning to map source to destination language and has the ability to determine the end of the sequence using the **<KOMYEOS>** .. I used greedy sampling it made better results but after reaching low perplexity nearly 1 both greedy and probabilistic sampling would work 
+My dataset is synthetic dataset where the source sentence for example **1 2 3 4 </KOMYEOS/>** the target translation would be **4 3 2 1 </KOMYEOS/>** so it will learning to map source to destination language and has the ability to determine the end of the sequence using the **</KOMYEOS/>** .. I used greedy sampling it made better results but after reaching low perplexity nearly 1 both greedy and probabilistic sampling would work 
  
 I implemented both batching and bucketing for training efficiency 
 
