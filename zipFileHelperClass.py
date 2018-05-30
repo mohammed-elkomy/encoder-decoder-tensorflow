@@ -52,8 +52,24 @@ class ZipFile:
         # self.print_info()
         self.zipf.close()
 
+
+#import tarfile
+
 # USAGE
-# myzipfile = ZipFile("python")
-# myzipfile.addDir('../DrQa/')
-# myzipfile.addFile('up_down.ipynb')
+# myzipfile = ZipFile("comp.zip")
+# myzipfile.addDir('./Bot/')
+# #myzipfile.addFile('./Bot/')
 # myzipfile.print_info()
+#
+# for root, dirs, files in os.walk('./Bot'):
+#     print((root, dirs, files))
+#
+#
+
+#
+# tar = tarfile.open("TarName.tar.gz", "w:gz")
+# tar.add("comp.zip", arcname="comp.zip")
+# tar.close()
+
+
+

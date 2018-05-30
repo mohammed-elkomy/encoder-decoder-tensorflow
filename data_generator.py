@@ -23,7 +23,7 @@ class DataGenerator:
         self.bucketed_data, self.bucketed_length = self.gen_dataset()
 
     def gen_dataset(self):
-        length = np.random.randint(self.max_len // 2, self.max_len + 1, self.samples)  # exclusive
+        length = np.random.randint(self.max_len // 8, self.max_len + 1, self.samples)  # exclusive
         random_data_block = np.random.randint(self.special_chars, self.vocab, (self.samples, self.max_len))  # just don't make 0 since it's pad token 1 for end of sequence
 
         sorted_indx = np.argsort(length)
@@ -69,7 +69,7 @@ class DataGenerator:
                 x_i[batch_lengths[i] - 1] = KOMYEOS
                 # x_i[:batch_lengths[i]] = batch_data[i][:batch_lengths[i]]  # process each sample in batch
 
-            batch_data += 1  # make sure there is no special_tokens in the target text since i need to pad,SOS,EOS
+            batch_data += 1  # make sure there is no special_tokens in the target text since i need to PAD,SOS,EOS
 
             # just put the start maker and place the source data but flipped
             rev_feed_batch[:, 0] = KOMYSOS  # start token is one
@@ -85,9 +85,13 @@ class DataGenerator:
     def average_padding(self):
         # average padding in the dataset after bucketing
         padding = 0
-        num_batches = 1000
-        for i in range(num_batches):
-            lengths = next(self.next_batch(self.batch_size))[4]
+        num_batches = 0
+
+        for _, _, _, _, lengths, _ in self.next_batch(batch_size):
+            # lengths = next(self.next_batch(self.batch_size))[4]
+            if num_batches > 5000:
+                break
+            num_batches += 1
             max_len = max(lengths)
             padding += np.sum(max_len - lengths)
         print("Average padding / batch:", padding / num_batches, "as the batch has", self.batch_size * self.max_len, "tokens", "padding percentage:", (padding / num_batches) / (self.batch_size * self.max_len))
@@ -105,5 +109,5 @@ class DataGenerator:
 
 
 # usage example
-dataGenerator = DataGenerator(num_epochs=num_epochs, vocab=vocabulary_size_encoder, max_len=max_seq_len_encoder, samples=num_samples_train, buckets=num_buckets_train, batch_size=batch_size, special_chars=2)
-dataGenerator.average_padding()
+# dataGenerator = DataGenerator(num_epochs=num_epochs, vocab=vocabulary_size_encoder, max_len=max_seq_len_encoder, samples=num_samples_train, buckets=num_buckets_train, batch_size=batch_size, special_chars=2)
+# dataGenerator.average_padding()
