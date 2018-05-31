@@ -39,7 +39,7 @@ minute = 60
 summary_every_mins = 3
 chechpoint_every_mins = 30
 
-is_local_env = True
+is_local_env = False
 if is_local_env:
     num_samples_train = 256 * 16 * 8
     num_samples_test = 256 * 4 * 8
