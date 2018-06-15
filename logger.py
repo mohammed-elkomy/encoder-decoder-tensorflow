@@ -92,18 +92,12 @@ class Logger:
         print("*" * 50)
 
     def log_download_drive(self, _id, title, download_start_time):
-        hours, minutes, seconds = self.time_taken(self.trainingManager.execution_start, time.time())
-        print("{:0>2}:{:0>2}:{:0>2} : Saved file: {}".format(hours, minutes, seconds, title))
-
         hours, minutes, seconds = self.time_taken(download_start_time, time.time(), False)
         print("Took {:0>2}:{:0>2}:{:0>2} to ".format(hours, minutes, seconds), end="")
         print('Download and unzipped file with ID:{}, titled:{}'.format(_id, title))
         print("*" * 100)
 
     def log_upload_drive(self, _id, title, upload_start_time):
-        hours, minutes, seconds = self.time_taken(self.trainingManager.execution_start, time.time())
-        print("{:0>2}:{:0>2}:{:0>2} : Saved file: {}".format(hours, minutes, seconds, title))
-
         hours, minutes, seconds = self.time_taken(upload_start_time, time.time(), False)
         print("Took {:0>2}:{:0>2}:{:0>2} to ".format(hours, minutes, seconds), end="")
         print('Upload file with ID:{}, titled:{}'.format(_id, title))
