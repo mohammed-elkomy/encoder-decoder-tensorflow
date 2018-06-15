@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow as tf 
 
 from model_utils import sample_from_probabilities
 from model_configs import vocabulary_size_decoder, vocabulary_size_encoder, KOMYSOS, KOMYEOS, KOMYPAD
