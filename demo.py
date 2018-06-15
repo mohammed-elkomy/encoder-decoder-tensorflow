@@ -1,12 +1,12 @@
 import numpy as np
 import tensorflow as tf
 
-from NMT_commons import sample_from_probabilities
-from configs import vocabulary_size_decoder, vocabulary_size_encoder, KOMYSOS, KOMYEOS, KOMYPAD
+from model_utils import sample_from_probabilities
+from model_configs import vocabulary_size_decoder, vocabulary_size_encoder, KOMYSOS, KOMYEOS, KOMYPAD
 
 ############################ Configs #################################
 interactive = True
-is_short_model = True
+is_short_model = False
 vocab_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 reverse_dict = dict(zip(range(3, 3 + len(vocab_chars)), vocab_chars))
 ######################################################################

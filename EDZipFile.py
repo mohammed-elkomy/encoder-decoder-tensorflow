@@ -4,8 +4,8 @@ import zipfile
 
 
 class ZipFile:
-    def __init__(self, fileName):
-        self.zipf = zipfile.ZipFile(fileName, 'w', zipfile.ZIP_DEFLATED)
+    def __init__(self, file_name):
+        self.zipf = zipfile.ZipFile(file_name, 'w', zipfile.ZIP_DEFLATED)
 
     def get_true_size(self):
         size = sum([zinfo.file_size for zinfo in self.zipf.filelist])
@@ -39,21 +39,19 @@ class ZipFile:
             print('  Uncompressed:', info.file_size, 'bytes')
             print()
 
-    def addDir(self, path):
-        # ziph is zipfile handle
+    def add_directory(self, path):
         for root, dirs, files in os.walk(path):
             for file in files:
                 self.zipf.write(os.path.join(root, file))
 
-    def addFile(self, path):
+    def add_file(self, path):
         self.zipf.write(path)
 
     def __del__(self):
         # self.print_info()
         self.zipf.close()
 
-
-#import tarfile
+# import tarfile
 
 # USAGE
 # myzipfile = ZipFile("comp.zip")
@@ -70,6 +68,3 @@ class ZipFile:
 # tar = tarfile.open("TarName.tar.gz", "w:gz")
 # tar.add("comp.zip", arcname="comp.zip")
 # tar.close()
-
-
-
