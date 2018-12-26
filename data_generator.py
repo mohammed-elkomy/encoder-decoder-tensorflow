@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from model_configs import ModelConfigs
@@ -10,8 +12,13 @@ the relation between the two languages is just reverse relationship
 
 class DataGenerator:
     def __init__(self, manager, generator="train"):
+        np.random.seed(int(time.time()))
+
         configs: ModelConfigs = manager.configs
-        manager.set_data_generator(self)
+        if generator == "train":
+            manager.set_data_generator(self)
+        self.manager = manager
+        self.generator = generator
         #############################################################################
 
         if generator == "train":
@@ -60,26 +67,22 @@ class DataGenerator:
         self.bucketed_data, self.bucketed_length = self.gen_dataset()
         self.buckets_cursors = np.array([0] * self.buckets)
 
-    def next_batch(self, batch):
+    def next_batch(self):
         while self.num_epochs > self.current_epoch:  # generates batch at each iteration and checking the epoch
             is_end_of_epoch = False
 
-            if np.any(self.buckets_cursors + batch >= self.samples_per_bucket):  # buckets_cursors are 0 based
-                # for any cursor if the bucket step size is exceeded just reset, this will tend to be normal with large numbers
-                self.current_epoch += 1
-                is_end_of_epoch = True
-                self.reset_data()
-
             chosen_bucket = np.random.randint(0, self.buckets)
+            while self.buckets_cursors[chosen_bucket] + self.batch_size > self.samples_per_bucket:
+                chosen_bucket = np.random.randint(0, self.buckets)
 
-            batch_data = self.bucketed_data[chosen_bucket][self.buckets_cursors[chosen_bucket]:self.buckets_cursors[chosen_bucket] + batch]  # sublist of bucket list
-            batch_lengths = self.bucketed_length[chosen_bucket][self.buckets_cursors[chosen_bucket]:self.buckets_cursors[chosen_bucket] + batch]
-            self.buckets_cursors[chosen_bucket] += batch
+            batch_data = self.bucketed_data[chosen_bucket][self.buckets_cursors[chosen_bucket]:self.buckets_cursors[chosen_bucket] + self.batch_size]  # sublist of bucket list
+            batch_lengths = self.bucketed_length[chosen_bucket][self.buckets_cursors[chosen_bucket]:self.buckets_cursors[chosen_bucket] + self.batch_size]
+            self.buckets_cursors[chosen_bucket] += self.batch_size
 
             # Pad sequences with 0s so they are all the same length
             maxlen = max(batch_lengths)
-            feed_batch = np.zeros([batch, maxlen], dtype=np.int32)  # zeros to leave the padding after flushing the data
-            rev_feed_batch = np.zeros([batch, maxlen + 1], dtype=np.int32)  # add 1 for the start of sequence
+            feed_batch = np.zeros([self.batch_size, maxlen], dtype=np.int32)  # zeros to leave the padding after flushing the data
+            rev_feed_batch = np.zeros([self.batch_size, maxlen + 1], dtype=np.int32)  # add 1 for the start of sequence
 
             for i, x_i in enumerate(feed_batch):
                 x_i[:batch_lengths[i] - 1] = batch_data[i][:batch_lengths[i] - 1]  # process each sample in batch
@@ -91,8 +94,20 @@ class DataGenerator:
             rev_feed_batch[:, 0] = self.named_constans.KOMYSOS  # start token is one
             for i, y_i in enumerate(rev_feed_batch):
                 # add one and sub one :3 this means i need len -1 elements as the last one is the EOS .. starting from position 1 because of the SOS
+
+                # # here we flip
                 y_i[1:batch_lengths[i] + 1 - 1] = np.flip(batch_data[i][:batch_lengths[i] - 1], axis=0)  # process each sample in batch
+                # # no flip
+                # y_i[1:batch_lengths[i] + 1 - 1] = batch_data[i][:batch_lengths[i] - 1]  # process each sample in batch
+
                 y_i[batch_lengths[i] + 1 - 1] = self.named_constans.KOMYEOS
+
+            if np.all(self.buckets_cursors + self.batch_size > self.samples_per_bucket):  # buckets_cursors are 0 based
+                # for any cursor if the bucket step size is exceeded just reset, this will tend to be normal with large numbers
+                is_end_of_epoch = True
+                self.reset_data()
+                if self.generator != "train":
+                    break
 
             # is_end_of_epoch,encoder_in, decoder_in,decoder_out,encoder_len,decoder_len
             yield is_end_of_epoch, feed_batch.transpose(), rev_feed_batch[:, :-1].transpose(), rev_feed_batch[:, 1:].transpose(), batch_lengths  # time major = seqlen * batch
@@ -102,7 +117,7 @@ class DataGenerator:
         padding = 0
         num_batches = 0
 
-        for _, _, _, _, lengths in self.next_batch(self.batch_size):
+        for _, _, _, _, lengths in self.next_batch():
             if num_batches > 5000:
                 break
             num_batches += 1

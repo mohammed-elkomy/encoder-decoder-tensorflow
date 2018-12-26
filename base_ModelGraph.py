@@ -16,6 +16,8 @@ class BaseModelGraph:
                 self.make_saver()
 
             self.variable_initializer()
+            base_training_manager.set_graph(self)
+
 
     def make_saver(self):
         raise NotImplementedError

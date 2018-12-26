@@ -36,6 +36,7 @@ class DriveRemoteSnapshots:
             folder = self.drive.CreateFile(folder_metadata)
             folder.Upload()
 
+        time.sleep(10)
         file_list = self.drive.ListFile({'q': '"{}" in parents and mimeType = "application/vnd.google-apps.folder" and trashed=false'.format(self.my_projects_folder_id)}).GetList()
         return list(file for file in file_list if file["title"] == self.project_name)[0]['id']
 
@@ -46,6 +47,13 @@ class DriveRemoteSnapshots:
         return self.drive.ListFile({'q': "title='{}' and trashed=false and mimeType = 'application/vnd.google-apps.folder'".format(folder_name)}).GetList()
 
     def upload_file(self, file_path):
+        gauth = GoogleAuth()
+        gauth.LoadCredentialsFile('credentials.txt')  # we need this
+        self.drive = GoogleDrive(gauth)
+
+        for file in sorted(self.drive.ListFile({'q': "trashed=false and mimeType != 'application/vnd.google-apps.folder' and '{}' in parents".format(self.project_id)}).GetList(), key=lambda k: k['title'])[:-2]:
+            file.Delete()  # Permanently delete older files.
+
         upload_started = time.time()
         title = os.path.split(file_path)[-1]
         uploaded = self.drive.CreateFile({'title': title, "parents": [{"kind": "drive#fileLink", "id": self.project_id}]})

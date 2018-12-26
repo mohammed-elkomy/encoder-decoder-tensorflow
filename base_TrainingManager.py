@@ -58,6 +58,7 @@ class BaseTrainingManager:
 
         # output files
         self.log_file = self.project_name + '.log'
+        self.err_file = self.project_name + '.err'
         self.checkpoint_dir_name = 'checkpoints/'
         self.event_files_dir_name = "event-logs/"
         self.params_file = self.project_name + ".params"
@@ -72,8 +73,8 @@ class BaseTrainingManager:
         if not self.resume_training:
             self.purge()
 
-        if not self.is_local_env:
-            sys.stdout = open(self.log_file, 'a')
+        self.stdout = open(self.log_file, 'a')
+        #self.stderr = open(self.err_file, 'a')
 
         if self.is_local_env:  # if running on my machine
             self.local_machine_protection()  # my local machine can't has only 8 gb memory and will crash :D
@@ -84,11 +85,6 @@ class BaseTrainingManager:
 
         self.timestamp = str(math.trunc(time.time()))
 
-        if not self.is_local_env:
-            # folder at each run named 'log/<timestamp>/'.
-            self.training_writer = tf.summary.FileWriter(self.event_files_dir_name + self.timestamp + "-training")
-            self.validation_writer = tf.summary.FileWriter(self.event_files_dir_name + self.timestamp + "-validation")
-
         # timers
         self.execution_start = time.time()
         self.checkpoint_last = time.time()
@@ -98,7 +94,7 @@ class BaseTrainingManager:
 
         # globals
         self.time_passed_correction = 0
-        self.summary_global_step = 0
+        self.global_step = 0
         self.zip_file_version = 0
         self.step = 0
 
@@ -116,6 +112,7 @@ class BaseTrainingManager:
                 os.remove(f)
 
     def restore_system_from_snapshot(self):
+        is_updated = False
         # restore parameters
         if self.resume_training and not self.is_local_env:
             # load params
@@ -124,16 +121,19 @@ class BaseTrainingManager:
 
             for key, _ in self.configs.__dict__.items():
                 if key != 'named_constants':
-                    self.configs.__dict__[key] = configs_dict[key]  # from file to my data structure
+                    if self.configs.__dict__[key] != configs_dict[key]:  # if there's any change from stored version I need to log them
+                        is_updated = True
 
             self.time_passed_correction = configs_dict["time_passed_correction"]
-            self.summary_global_step = configs_dict["summary_global_step"]
+            self.global_step = configs_dict["global_step"]
             self.zip_file_version = configs_dict["zip_file_version"]
+
+        return is_updated
 
     def get_current_configs_dict(self):
         ret_dict = {
             "time_passed_correction": round(time.time() - self.execution_start + (self.time_passed_correction if self.resume_training else 0)),
-            "summary_global_step": self.summary_global_step,
+            "global_step": self.global_step,
             "zip_file_version": self.zip_file_version
         }
 
@@ -157,19 +157,32 @@ class BaseTrainingManager:
         snapshot_zip.add_directory(self.event_files_dir_name)
         snapshot_zip.add_directory(self.checkpoint_dir_name)
 
-        if os.path.isfile(self.log_file):
-            snapshot_zip.add_file(self.log_file)
-
         self.save_params()
         snapshot_zip.add_file(self.params_file)
 
         snapshot_zip.print_info()
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+        if os.path.isfile(self.log_file):
+            snapshot_zip.add_file(self.log_file)
+
+        if os.path.isfile(self.err_file):
+            snapshot_zip.add_file(self.err_file)
+
+        snapshot_zip.zipf.close()  # now i can upload
 
         if "preferences" not in os.getcwd():
             self.drive_snapshot_manager.upload_file(file_name)
 
     def get_current_snapshot_name(self):
         return encode_string(self.zip_file_version - 1)
+
+    def initialize_event_files(self, tf_graph):
+        if not self.is_local_env:
+            # folder at each run named 'log/<timestamp>/'.
+            self.training_writer = tf.summary.FileWriter(self.event_files_dir_name + self.timestamp + "-training", tf_graph)
+            self.validation_writer = tf.summary.FileWriter(self.event_files_dir_name + self.timestamp + "-validation")
 
     # for datasets larger then my memory
     def local_machine_protection(self):
@@ -203,7 +216,7 @@ class BaseTrainingManager:
 
         self.initialize_accumulated_variables()
         sys.stdout.flush()
-        for _next in self.data_generator.next_batch(self.configs.batch_size):
+        for _next in self.data_generator.next_batch():
             current_time = time.time()
             is_end_of_epoch = _next[0]
 
@@ -230,6 +243,8 @@ class BaseTrainingManager:
             else:
                 self.sustaining_callback(_next[1:], self.graph, self.configs, self.session)
 
+
+
             # save a checkpoint
             if (current_time - self.checkpoint_last) > self.checkpoint_every_mins * self.minute:
                 self.checkpoint_last = time.time()
@@ -239,25 +254,26 @@ class BaseTrainingManager:
                         os.remove(os.path.join(self.checkpoint_dir_name, file))
 
                     # noinspection PyUnboundLocalVariable
-                    saved_file = self.graph.saver.save(self.session, self.checkpoint_file_name + self.timestamp, global_step=self.summary_global_step)
+                    saved_file = self.graph.saver.save(self.session, self.checkpoint_file_name + self.timestamp, global_step=self.global_step)
                     self.zip_file_version += 1
-                    self.save_system_snapshot()
                     self.logger.log_file_saved(saved_file, self.checkpoint_last)
+                    self.save_system_snapshot()
                 sys.stdout.flush()
 
             # apply test dataset
-            if (current_time - self.test_last) > self.test_every_mins * self.minute and "preferences" not in os.getcwd():
+            if (current_time - self.test_last) > self.test_every_mins * self.minute :
                 self.test_last = time.time()
                 self.test_callback(self.graph, self.configs, self.session)
 
             # end of epoch
             if is_end_of_epoch:
                 self.end_epoch_callback(self.graph, self.configs, self.session)
-                print("asdopaspjodsawjkpd[;dsad", self.summary_global_step, "asdopaspjodsawjkpd[;dsad")
 
             sys.stdout.flush()
             self.step += 1
-            self.summary_global_step += 1
+            self.global_step += 1
+            self.data_generator.current_epoch = self.global_step // (self.data_generator.samples / self.data_generator.batch_size)
+
 
     def set_logger(self, _logger):
         self.logger = _logger
@@ -266,10 +282,11 @@ class BaseTrainingManager:
             status = self.drive_snapshot_manager.get_latest_snapshot()  # could restore
             self.resume_training = status
 
-        if self.resume_training:  # founc data on colab and and they are compressed
-            self.restore_system_from_snapshot()
+        is_updated = False
+        if self.resume_training:  # found data on colab and and they are compressed
+            is_updated = self.restore_system_from_snapshot()
 
-        self.logger.log_training_initialized()
+        self.logger.log_training_initialized(is_updated)
 
     def set_graph(self, model_graph):
         self.session = tf.Session(graph=model_graph.tf_graph)
@@ -283,6 +300,8 @@ class BaseTrainingManager:
             self.logger.log_model_restored()
         else:
             self.session.run(self.graph.init)
+
+        self.initialize_event_files(model_graph.tf_graph)
 
     def set_data_generator(self, data_generator: DataGenerator):
         self.data_generator = data_generator
