@@ -6,7 +6,33 @@ My dataset is synthetic dataset where the source sentence for example **1 2 3 4 
  
 I implemented both batching and bucketing for training efficiency 
 
-![alt text](https://www.blognone.com/sites/default/files/externals/457b91b1c143ae37eacf1f7b930e104e.jpg)
+![NMT model](https://www.blognone.com/sites/default/files/externals/457b91b1c143ae37eacf1f7b930e104e.jpg)
+
+## How to run demo
+  ```
+  # vanilla demo
+  cd vanilla
+  python demo.py
+  
+  # attention model
+  cd atten_tf
+  python demo.py
+  ```
+## Demo output(my pretrained models)
+### vanila demo
+```
+Enter Statement
+please invert this sentence vanilla seq2seq model? <KOMYEOS> 
+==>
+?ledom qes2qes allinav ecnetnes siht trevni esaelp <KOMYEOS>(51/51) .
+```
+### attentive non-inverting model demo + forward attention grid
+```
+Enter Statement
+show me how you really attend? <KOMYEOS> ==>
+show me how you really attend? <KOMYEOS>(31/31) .
+```
+![Demo attention](https://serving.photos.photobox.com/56163462d87c4a51773d73757f6534d17e2b342d470c26b525f3e4a77cb3fb6dc0864635.jpg)
 
 ## Some sample logs while training 
 
