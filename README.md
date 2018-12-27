@@ -32,6 +32,7 @@ Enter Statement
 show me how you really attend? <KOMYEOS> ==>
 show me how you really attend? <KOMYEOS>(31/31) .
 ```
+Demo of the forward attention for the sentence "how me how you really attend?" where it really attends on ith character of the input to generate the ith character of the output.
 ![Demo attention](https://serving.photos.photobox.com/56163462d87c4a51773d73757f6534d17e2b342d470c26b525f3e4a77cb3fb6dc0864635.jpg)
 
 ## Some sample logs while training 
